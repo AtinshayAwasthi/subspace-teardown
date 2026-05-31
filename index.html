@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subspace.money — Product Teardown by Atinshay</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@300;400;500&family=Geist:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --surface2: #18181f;
+  --border: #2a2a35;
+  --border-bright: #3d3d50;
+  --text: #e8e8f0;
+  --text-muted: #7070a0;
+  --text-dim: #404060;
+  --indigo: #6366f1;
+  --indigo-dim: #2d2d60;
+  --indigo-glow: rgba(99,102,241,0.15);
+  --amber: #f59e0b;
+  --amber-dim: #3d2e00;
+  --red: #ef4444;
+  --red-dim: #2d1010;
+  --green: #22c55e;
+  --green-dim: #0d2d1a;
+  --teal: #14b8a6;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Geist', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; font-size: 15px; -webkit-font-smoothing: antialiased; }
+
+/* NOISE OVERLAY */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* COVER */
+.cover {
+  position: relative;
+  padding: 80px 64px 64px;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+.cover-glow {
+  position: absolute;
+  top: -120px; left: -120px;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cover-glow2 {
+  position: absolute;
+  bottom: -80px; right: 0;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cover-label {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--indigo);
+  margin-bottom: 20px;
+}
+.cover h1 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(48px, 7vw, 88px);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+.cover h1 em { color: var(--indigo); font-style: italic; }
+.cover-sub {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 18px;
+  color: var(--text-muted);
+  max-width: 560px;
+  margin-bottom: 48px;
+  line-height: 1.5;
+}
+.cover-stats {
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+  border: 1px solid var(--border);
+  max-width: 720px;
+}
+.cover-stat {
+  flex: 1;
+  min-width: 140px;
+  padding: 16px 20px;
+  border-right: 1px solid var(--border);
+}
+.cover-stat:last-child { border-right: none; }
+.cs-label {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+}
+.cs-val {
+  font-family: 'Geist', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* NAV / TOC */
+.toc {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.toc-item {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 14px 24px;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s;
+}
+.toc-item:hover { color: var(--indigo); background: var(--indigo-glow); }
+.toc-num { color: var(--text-dim); margin-right: 6px; }
+
+/* GRID LAYOUT */
+.page { max-width: 1100px; margin: 0 auto; }
+.section { padding: 60px 64px; border-bottom: 1px solid var(--border); }
+
+/* SECTION HEADER */
+.sec-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 36px;
+}
+.sec-tag {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--indigo);
+  border: 1px solid var(--indigo-dim);
+  padding: 3px 8px;
+  background: var(--indigo-glow);
+}
+.sec-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--text);
+}
+
+/* DATA CALLOUTS */
+.data-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: 40px;
+}
+.data-cell {
+  background: var(--surface);
+  padding: 20px 24px;
+}
+.data-cell-label {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.data-cell-val {
+  font-family: 'Instrument Serif', serif;
+  font-size: 28px;
+  color: var(--amber);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.data-cell-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* CONTEXT GRID */
+.ctx-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: 40px;
+}
+.ctx-cell {
+  background: var(--surface);
+  padding: 22px 24px;
+}
+.ctx-cell-title {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--indigo);
+  margin-bottom: 14px;
+}
+.ctx-cell ul { list-style: none; }
+.ctx-cell ul li {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 4px 0;
+  padding-left: 16px;
+  position: relative;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.5;
+}
+.ctx-cell ul li:last-child { border-bottom: none; }
+.ctx-cell ul li::before {
+  content: '·';
+  position: absolute; left: 4px;
+  color: var(--indigo);
+}
+.ctx-cell ul li strong { color: var(--text); font-weight: 500; }
+
+/* SCREENSHOT STRIP */
+.ss-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 6px;
+}
+.ss-strip img {
+  height: 180px;
+  width: auto;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  display: block;
+  object-fit: cover;
+}
+.ss-strip img:hover { border-color: var(--indigo); }
+.ss-caption {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  margin-bottom: 32px;
+}
+
+/* FEEDBACK CARDS */
+.fb-list { display: flex; flex-direction: column; gap: 2px; }
+
+.fb {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.fb:hover { border-color: var(--border-bright); }
+.fb-accent-bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+}
+.fb-accent-bar.p0 { background: var(--red); }
+.fb-accent-bar.p1 { background: var(--amber); }
+.fb-accent-bar.p2 { background: var(--teal); }
+
+.fb-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 24px 28px 20px 32px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.fb-num {
+  font-family: 'Instrument Serif', serif;
+  font-size: 52px;
+  line-height: 1;
+  color: var(--border-bright);
+  min-width: 56px;
+  flex-shrink: 0;
+}
+.fb-head-text { flex: 1; }
+.fb-pillar {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--indigo);
+  margin-bottom: 6px;
+}
+.fb-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text);
+  line-height: 1.25;
+  margin-bottom: 8px;
+}
+.fb-hook {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  font-style: italic;
+  max-width: 640px;
+}
+.fb-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.badge {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border: 1px solid;
+}
+.badge.p0 { color: var(--red); border-color: var(--red); background: var(--red-dim); }
+.badge.p1 { color: var(--amber); border-color: var(--amber); background: var(--amber-dim); }
+.badge.p2 { color: var(--teal); border-color: var(--teal); background: var(--green-dim); }
+
+.fb-body { padding: 0 28px 28px 32px; }
+
+.fb-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 20px;
+}
+.fb-section { background: var(--bg); padding: 18px 20px; }
+.fb-sec-label {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.fb-sec-label.obs { color: var(--text-dim); }
+.fb-sec-label.prob { color: var(--red); }
+.fb-sec-label.ship { color: var(--green); }
+.fb-sec-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+.fb-sec-text strong { color: var(--text); font-weight: 500; }
+.fb-sec-text em { color: var(--amber); font-style: normal; }
+
+/* INLINE SCREENSHOT */
+.ss-inline {
+  margin: 12px 0;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.ss-inline img {
+  width: 100%;
+  display: block;
+  max-height: 220px;
+  object-fit: cover;
+  object-position: top;
+}
+.ss-inline-cap {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9.5px;
+  color: var(--text-dim);
+  padding: 6px 10px;
+  border-top: 1px solid var(--border);
+  letter-spacing: 0.06em;
+}
+
+/* REVIEW QUOTE */
+.review {
+  background: var(--amber-dim);
+  border: 1px solid rgba(245,158,11,0.25);
+  padding: 12px 16px;
+  margin: 10px 0;
+}
+.review-meta {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+  margin-bottom: 6px;
+}
+.review-text {
+  font-style: italic;
+  font-size: 12.5px;
+  color: #d4a860;
+  line-height: 1.6;
+}
+
+/* DATA TABLE */
+.data-table-wrap {
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  margin-top: 16px;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.data-table thead { background: var(--surface2); }
+.data-table thead th {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.data-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+.data-table tbody tr:hover { background: var(--surface2); }
+.data-table tbody td {
+  padding: 10px 14px;
+  color: var(--text-muted);
+  vertical-align: top;
+}
+.data-table tbody td.hl { color: var(--text); font-weight: 500; }
+.win { color: var(--green); }
+.loss { color: var(--red); }
+.neu { color: var(--amber); }
+
+/* INSIGHT CALLOUT */
+.insight {
+  background: var(--indigo-glow);
+  border: 1px solid var(--indigo-dim);
+  padding: 14px 18px;
+  margin: 10px 0;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.insight-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.insight-text {
+  font-size: 12.5px;
+  color: #a5b4fc;
+  line-height: 1.6;
+}
+.insight-text strong { color: #c7d2fe; }
+
+/* MATRIX */
+.matrix-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 36px;
+}
+.mx-cell { background: var(--surface); padding: 20px 22px; }
+.mx-cell h4 {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.mx-cell.q1 h4 { color: var(--red); }
+.mx-cell.q2 h4 { color: var(--amber); }
+.mx-cell.q3 h4 { color: var(--teal); }
+.mx-cell.q4 h4 { color: var(--text-dim); }
+.mx-cell ul { list-style: none; }
+.mx-cell ul li {
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 3px 0;
+}
+
+/* FOOTER */
+.footer {
+  padding: 32px 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+}
+.footer-left { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 16px; color: var(--text-muted); }
+.footer-right { font-family: 'Geist Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); }
+
+@media (max-width: 768px) {
+  .cover, .section { padding: 40px 24px; }
+  .cover h1 { font-size: 44px; }
+  .data-row { grid-template-columns: 1fr 1fr; }
+  .ctx-grid { grid-template-columns: 1fr; }
+  .fb-grid { grid-template-columns: 1fr; }
+  .matrix-grid { grid-template-columns: 1fr; }
+  .fb-head { flex-direction: column; gap: 12px; }
+  .fb-badges { flex-direction: row; }
+  .footer { flex-direction: column; gap: 12px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-glow"></div>
+  <div class="cover-glow2"></div>
+  <div class="cover-label">Product Intern Assignment · Subspace.money · May 2026</div>
+  <h1>Product<br><em>Teardown</em></h1>
+  <p class="cover-sub">Five data-grounded, non-obvious feedbacks built from first-principles analysis of the app, user reviews, market data, and revenue mechanics.</p>
+  <div class="cover-stats">
+    <div class="cover-stat">
+      <div class="cs-label">Submitted by</div>
+      <div class="cs-val">Atinshay</div>
+    </div>
+    <div class="cover-stat">
+      <div class="cs-label">Company</div>
+      <div class="cs-val">Subspace.money</div>
+    </div>
+    <div class="cover-stat">
+      <div class="cs-label">Framework</div>
+      <div class="cs-val">SWOT + Porter's + Revenue Analysis</div>
+    </div>
+    <div class="cover-stat">
+      <div class="cs-label">Deadline</div>
+      <div class="cs-val">31 May 2026, 11:59 PM IST</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <a href="#context" class="toc-item"><span class="toc-num">00</span>Context</a>
+  <a href="#fb1" class="toc-item"><span class="toc-num">01</span>Trust Collapse</a>
+  <a href="#fb2" class="toc-item"><span class="toc-num">02</span>Hidden Moat</a>
+  <a href="#fb3" class="toc-item"><span class="toc-num">03</span>Rentals UX</a>
+  <a href="#fb4" class="toc-item"><span class="toc-num">04</span>Brand Diffusion</a>
+  <a href="#fb5" class="toc-item"><span class="toc-num">05</span>Admin Loop</a>
+  <a href="#matrix" class="toc-item"><span class="toc-num">06</span>Priority Matrix</a>
+</div>
+
+<div class="page">
+
+<!-- SECTION 0: CONTEXT -->
+<div class="section" id="context">
+  <div class="sec-header">
+    <div class="sec-tag">00 · Context</div>
+    <div class="sec-title">What Subspace is — and what makes it genuinely interesting</div>
+  </div>
+
+  <!-- KEY NUMBERS -->
+  <div class="data-row">
+    <div class="data-cell">
+      <div class="data-cell-label">ARR (FY25)</div>
+      <div class="data-cell-val">₹36.5Cr</div>
+      <div class="data-cell-desc">Bootstrapped. Zero external funding. One of the few profitable consumer fintech apps in India.</div>
+    </div>
+    <div class="data-cell">
+      <div class="data-cell-label">India OTT Market 2025</div>
+      <div class="data-cell-val">601M</div>
+      <div class="data-cell-desc">OTT viewers in India. 148M active paid subscriptions. Growing at 15.6% CAGR through 2035.</div>
+    </div>
+    <div class="data-cell">
+      <div class="data-cell-label">Subscription Fatigue</div>
+      <div class="data-cell-val">41%</div>
+      <div class="data-cell-desc">Of consumers globally report subscription fatigue. 47% say they pay too much for streaming. (Deloitte, 2025)</div>
+    </div>
+    <div class="data-cell">
+      <div class="data-cell-label">Play Store Rating</div>
+      <div class="data-cell-val">3.5★</div>
+      <div class="data-cell-desc">3,230+ reviews as of April 2026. Top complaints: admin trust failures, persistent bugs since 2024.</div>
+    </div>
+  </div>
+
+  <!-- CONTEXT CELLS -->
+  <div class="ctx-grid">
+    <div class="ctx-cell">
+      <div class="ctx-cell-title">Business Model (Revenue Mechanics)</div>
+      <ul>
+        <li><strong>Commission on transactions</strong> — stated on About Us: "small % of total transaction value"</li>
+        <li><strong>Gift card margin</strong> — buys in bulk at distributor discount (8–13%), sells at partial-discount; pockets the spread</li>
+        <li><strong>Subscription arbitrage</strong> — aggregates OTT family slots, sells individual slots below list price; margin = slot price × seats − platform cost</li>
+        <li><strong>Admin margin</strong> — admin sets group price; Subspace takes a platform cut from each admin transaction</li>
+        <li><strong>Rentals GMV</strong> — rental platform fee on each gadget rental transaction</li>
+        <li><strong>90%+ ops via AI agents</strong> = structurally low cost-per-transaction; this is how they stay profitable at ₹36.5Cr ARR</li>
+      </ul>
+    </div>
+    <div class="ctx-cell">
+      <div class="ctx-cell-title">Structural Tailwinds</div>
+      <ul>
+        <li><strong>Subscription fatigue is real:</strong> avg consumer holds 5.6 active subs globally; India avg is rising fast</li>
+        <li><strong>Netflix crackdown (Jul 2023):</strong> household-only policy enforced in India; users kicked out of shared accounts → direct demand for Subspace-style group coordination</li>
+        <li><strong>India SVOD ARPU:</strong> ~$9/yr vs $79 globally — Indian consumers are extremely price-sensitive; sharing is structural, not opportunistic</li>
+        <li><strong>357M SVOD subscriptions projected by 2030</strong> in India — the market Subspace is aggregating is on a steep growth curve</li>
+        <li><strong>IIT Madras founding team</strong> + Google Top 100 Startup recognition — credibility above typical bootstrapped fintech</li>
+      </ul>
+    </div>
+    <div class="ctx-cell">
+      <div class="ctx-cell-title">Competitive Moats vs. Risks</div>
+      <ul>
+        <li><strong>Moat:</strong> Negotiate API (automated brand negotiation) — no competitor has this</li>
+        <li><strong>Moat:</strong> Network effects — larger group pool → better prices → more users</li>
+        <li><strong>Moat:</strong> 90% AI ops → structurally can undercut human-ops competitors on margin</li>
+        <li><strong>Risk:</strong> Netflix/Spotify are actively fighting credential sharing — Subspace's core model is legally grey</li>
+        <li><strong>Risk:</strong> OTT platforms moving to device-based authentication (not password-based) would structurally break group sharing</li>
+        <li><strong>Risk:</strong> Founder Joey Dash now full-time at Vocallabs.ai — leadership transition risk with new CEO Anupam Sharma (Mar 2026)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Play Store screenshots overview -->
+  <div class="ss-strip">
+    <img src="https://play-lh.googleusercontent.com/qiDtjH0pfuoLx_eBzqWg0XjByswBSL95wptveQ-AMnyQXRqOy61Tq6BityyIXGHhoKM=w526-h296" alt="Subspace home screen" onerror="this.style.display='none'">
+    <img src="https://play-lh.googleusercontent.com/ZcD-EcvQqKJygaKXCobouKpVddIKdtvxQwLQvuUY9GCRVoTTwFyHeFrU4Mepf5FbGA=w526-h296" alt="Subspace subscriptions" onerror="this.style.display='none'">
+    <img src="https://play-lh.googleusercontent.com/FcDYLC7YKYoWoO9sUCDKVSYkpNt02W0N2wLYrGDZbaTJM-t2kzFzh7MXxTAgLNRvM81S=w526-h296" alt="Subspace groups" onerror="this.style.display='none'">
+    <img src="https://play-lh.googleusercontent.com/JQ5RYYN18nZnT8Sjs2xUXANh9nAkyFb5YvvJBU3eHFrFKrxAP4fBsO92Vg29tHp43g=w526-h296" alt="Subspace gift cards" onerror="this.style.display='none'">
+    <img src="https://play-lh.googleusercontent.com/VJlatpBEXCdvSw-gOZbFzhl1bhR4W1meBoXPdLU1hzlzonVntMx_6Perde9sChtLkA=w526-h296" alt="Subspace rentals" onerror="this.style.display='none'">
+    <img src="https://play-lh.googleusercontent.com/C7OjvLQZ0Xayupy5seMuWHhX4t5hyDr8w7aBqmXLFi4vZ4MA4dlz926axg-cLfUL3Jo=w526-h296" alt="Subspace deals" onerror="this.style.display='none'">
+  </div>
+  <div class="ss-caption">↑ All 6 official Play Store screenshots — used as primary source for UX observations throughout this teardown</div>
+</div>
+
+<!-- FEEDBACK 1 -->
+<div class="section" id="fb1">
+  <div class="sec-header">
+    <div class="sec-tag">01 · UX + Trust</div>
+    <div class="sec-title">The group-sharing model has no trust infrastructure — and it's actively destroying the product's most important revenue line</div>
+  </div>
+
+  <div class="insight">
+    <div class="insight-icon">⚡</div>
+    <div class="insight-text"><strong>Why this is P0:</strong> Group sharing is likely Subspace's highest-margin vertical — the platform takes a cut on every admin transaction, and admins handle customer support themselves. But a 3.5★ rating with trust-failure as the dominant complaint actively destroys top-of-funnel conversion. Every new user who Googles "Subspace review" sees this first.</div>
+  </div>
+
+  <div class="fb-list">
+    <div class="fb" id="fb1-card">
+      <div class="fb-accent-bar p0"></div>
+      <div class="fb-head">
+        <div class="fb-num">01</div>
+        <div class="fb-head-text">
+          <div class="fb-pillar">UX · Trust Architecture</div>
+          <div class="fb-title">Users pay in full, then depend entirely on an anonymous admin — with zero recourse when access is revoked</div>
+          <div class="fb-hook">The public-groups flow has no admin vetting, no escrow, no SLA, and no in-app dispute mechanism. This isn't a UX gap — it's a missing trust primitive that exposes users to real financial loss.</div>
+        </div>
+        <div class="fb-badges"><span class="badge p0">P0 · Critical</span></div>
+      </div>
+      <div class="fb-body">
+
+        <!-- Screenshot of group screen -->
+        <div class="ss-inline">
+          <img src="https://play-lh.googleusercontent.com/ZcD-EcvQqKJygaKXCobouKpVddIKdtvxQwLQvuUY9GCRVoTTwFyHeFrU4Mepf5FbGA=w526-h296" alt="Group sharing flow — no trust signals" onerror="this.style.display='none'">
+          <div class="ss-inline-cap">Play Store screenshot · Groups screen — No admin rating, no response-rate indicator, no money-back guarantee, no escrow mention before payment</div>
+        </div>
+
+        <!-- Live user reviews -->
+        <div class="review">
+          <div class="review-meta">★★☆☆☆ · Google Play · April 2026 · Verified purchase</div>
+          <div class="review-text">"Subspace make very bad rule for the user once if you pay then you lose your money… the subscriber doesn't allow you to login, he logged out of me from the id and subscription doesn't refund the amount even now not responding to my text and call."</div>
+        </div>
+        <div class="review">
+          <div class="review-meta">★★★☆☆ · Google Play · 2026 · Verified purchase</div>
+          <div class="review-text">"had problems with the shared subscription as admin never replied… would advise against shared subscription as you're dependent on admins. One area of improvement would be to make it easier to reach customer support."</div>
+        </div>
+        <div class="review">
+          <div class="review-meta">★★☆☆☆ · Google Play · April 2026 · Top-voted review</div>
+          <div class="review-text">"One of those apps which had potential but the CEO and the team are utter useless. 1. It's been years since their app bugs still exist without any fixes. 2. No improvement in UI. 3. Utterly useless support without any real time updates."</div>
+        </div>
+
+        <div class="fb-grid">
+          <div class="fb-section">
+            <div class="fb-sec-label obs">Observed</div>
+            <div class="fb-sec-text">
+              The public-groups page (subspace.money/public-groups) documents the flow honestly: "The group owner typically shares the subscription credentials securely with all members." The operative word is <em>typically</em> — the platform's own copy acknowledges no guarantee. In the join flow, the UI shows the group name, price, and member count. There is no admin trust score, no verification badge, no response-rate metric, no refund policy link, and no "what happens if the admin disappears" explainer. Joey Dash personally replies to negative reviews with a phone number — which is reactive customer service, not structural trust.
+            </div>
+          </div>
+          <div class="fb-section">
+            <div class="fb-sec-label prob">Problem</div>
+            <div class="fb-sec-text">
+              The business logic compounds the risk: a user pays upfront for a monthly slot (say ₹150 for a Netflix screen). The admin uses that money to pay for the full plan. If the admin disappears or revokes access, the user has lost ₹150 with no automated path to recovery. At scale — Subspace's group marketplace likely has thousands of active admins — even a 2% bad-admin rate causes hundreds of monthly fraud incidents. These surface publicly on Play Store, where 3.5★ (vs. CRED's 4.6★ and Splitwise's 4.4★) signals systemic distrust to every potential new user. The platform's <strong>take-rate on admin transactions is effectively funded by this trust asymmetry</strong> — and it's about to break.
+            </div>
+          </div>
+          <div class="fb-section">
+            <div class="fb-sec-label ship">Ship Instead</div>
+            <div class="fb-sec-text">
+              <strong>Three-layer trust stack, shipping in order of complexity:</strong><br><br>
+              <em>Week 1 — Admin Trust Score:</em> Display response rate, % successful deliveries, and tenure on every public group card. Data already exists in backend; this is a frontend change only.<br><br>
+              <em>Sprint 2 — Subspace Guarantee:</em> Hold member payments in a 24-hour escrow after each renewal. If no access-confirmation ping is received from the member's device within 24h, auto-trigger refund. Cost: payment hold infrastructure. Revenue impact: minimal, since most admins deliver.<br><br>
+              <em>Q3 — Verified Admin Programme:</em> KYC-verified admins get a "Verified" badge and can charge a 5–10% premium. This flips the trust problem into a monetisation opportunity — verified admins earn more, Subspace earns more per transaction, and the marketplace self-selects toward quality.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK 2 -->
+<div class="section" id="fb2">
+  <div class="sec-header">
+    <div class="sec-tag">02 · Features</div>
+    <div class="sec-title">The Negotiate API is Subspace's most defensible moat — and it generates zero user-visible value or B2B revenue</div>
+  </div>
+
+  <div class="insight">
+    <div class="insight-icon">⚡</div>
+    <div class="insight-text"><strong>The core insight:</strong> Subspace's revenue model is "small % of transaction value." A Negotiate API that actively lowers the transaction value sounds counterproductive — unless you think about it as a retention weapon and a B2B product. Neither opportunity is being captured.</div>
+  </div>
+
+  <div class="fb-list">
+    <div class="fb" id="fb2-card">
+      <div class="fb-accent-bar p0"></div>
+      <div class="fb-head">
+        <div class="fb-num">02</div>
+        <div class="fb-head-text">
+          <div class="fb-pillar">Features / Services · B2B Whitespace</div>
+          <div class="fb-title">Across all 6 Play Store screens, 4 website pages, and the blog — "Negotiate" appears exactly zero times as a user-facing feature</div>
+          <div class="fb-hook">A moat users can't feel is a moat that generates no loyalty. And a B2B API that isn't marketed is a revenue line that doesn't exist.</div>
+        </div>
+        <div class="fb-badges"><span class="badge p0">P0 · Critical</span></div>
+      </div>
+      <div class="fb-body">
+
+        <div class="ss-strip">
+          <img src="https://play-lh.googleusercontent.com/qiDtjH0pfuoLx_eBzqWg0XjByswBSL95wptveQ-AMnyQXRqOy61Tq6BityyIXGHhoKM=w526-h296" alt="Screen 1 — no negotiate" onerror="this.style.display='none'">
+          <img src="https://play-lh.googleusercontent.com/ZcD-EcvQqKJygaKXCobouKpVddIKdtvxQwLQvuUY9GCRVoTTwFyHeFrU4Mepf5FbGA=w526-h296" alt="Screen 2 — no negotiate" onerror="this.style.display='none'">
+          <img src="https://play-lh.googleusercontent.com/FcDYLC7YKYoWoO9sUCDKVSYkpNt02W0N2wLYrGDZbaTJM-t2kzFzh7MXxTAgLNRvM81S=w526-h296" alt="Screen 3 — no negotiate" onerror="this.style.display='none'">
+          <img src="https://play-lh.googleusercontent.com/JQ5RYYN18nZnT8Sjs2xUXANh9nAkyFb5YvvJBU3eHFrFKrxAP4fBsO92Vg29tHp43g=w526-h296" alt="Screen 4 — no negotiate" onerror="this.style.display='none'">
+          <img src="https://play-lh.googleusercontent.com/VJlatpBEXCdvSw-gOZbFzhl1bhR4W1meBoXPdLU1hzlzonVntMx_6Perde9sChtLkA=w526-h296" alt="Screen 5 — no negotiate" onerror="this.style.display='none'">
+          <img src="https://play-lh.googleusercontent.com/C7OjvLQZ0Xayupy5seMuWHhX4t5hyDr8w7aBqmXLFi4vZ4MA4dlz926axg-cLfUL3Jo=w526-h296" alt="Screen 6 — no negotiate" onerror="this.style.display='none'">
+        </div>
+        <div class="ss-caption">↑ All 6 official Play Store screens audited — "Negotiate," "savings negotiated," or any price-negotiation UI appears on zero of them</div>
+
+        <div class="fb-grid">
+          <div class="fb-section">
+            <div class="fb-sec-label obs">Observed</div>
+            <div class="fb-sec-text">
+              The About Us page states Subspace's revenue model is "a small % of total transaction value." The assignment brief cites the Negotiate API as a top moat. These two facts are in tension: if the API reduces transaction value (by negotiating lower prices), it compresses Subspace's own take-rate — unless the API creates retention or is sold separately as a B2B product. Neither is happening. There is no developer documentation, no API pricing page, no B2B landing page, and no in-app "Negotiate" button, savings counter, or negotiation history screen anywhere in the product.
+            </div>
+          </div>
+          <div class="fb-section">
+            <div class="fb-sec-label prob">Problem</div>
+            <div class="fb-sec-text">
+              Think about the Negotiate API economically. If Subspace negotiates a user's ₹800/month Spotify to ₹680, the user saves ₹120 — but Subspace's % take-rate on a ₹680 transaction is lower than on ₹800. The API only makes sense if it <strong>drives retention</strong> (users stay because Subspace proved value) or <strong>earns a B2B fee</strong> (HR platforms, employee benefit tools, or NBFCs pay to embed the negotiation layer). Currently it does neither. The API exists as a back-end process, invisible to users, unmonetised on the B2B side, and generating no loyalty signal. It's the most expensive feature to build and the least revenue-productive.
+            </div>
+          </div>
+          <div class="fb-section">
+            <div class="fb-sec-label ship">Ship Instead</div>
+            <div class="fb-sec-text">
+              <strong>Two parallel tracks:</strong><br><br>
+              <em>Consumer — Make savings visible:</em> Add a "Subspace has saved you ₹X this year" counter to the home screen, triggered by Negotiate API outcomes. Before each renewal, show: "Your [Service] renews in 3 days — last time we negotiated ₹120 off. Want us to try again?" This reframes the API from a cost-centre into a retention mechanic. Users who see concrete savings stay — even if they could get the same subscription cheaper directly.<br><br>
+              <em>B2B — Monetise the API independently:</em> Target HR platforms (Keka, Darwinbox, Razorpay Payroll) that offer employee benefits. Subspace embeds as a "subscription negotiation" benefit — employer pays a per-seat fee. This is a completely different revenue stream from the consumer commission model, with better margins and no OTT platform risk.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK 3 -->
+<div class="section" id="fb3">
+  <div class="sec-header">
+    <div class="sec-tag">03 · UX + GTM</div>
+    <div class="sec-title">The website's very first interaction is a broken location modal — and Rentals loses every unsupported-city user permanently</div>
+  </div>
+
+  <div class="fb-list">
+    <div class="fb" id="fb3-card">
+      <div class="fb-accent-bar p1"></div>
+      <div class="fb-head">
+        <div class="fb-num">03</div>
+        <div class="fb-head-text">
+          <div class="fb-pillar">UX · Rentals GTM</div>
+          <div class="fb-title">A new user in Delhi or Mumbai opens Subspace.money and the first experience is a location modal that silently fails — with no city list, no error, and no waitlist</div>
+          <div class="fb-hook">First impressions set Bayesian priors. A product that fails at second 0 has already lost the conversion battle before the value prop lands.</div>
+        </div>
+        <div class="fb-badges"><span class="badge p1">P1 · High</span></div>
+      </div>
+      <div class="fb-body">
+
+        <div class="ss-inline">
+          <img src="https://play-lh.googleusercontent.com/VJlatpBEXCdvSw-gOZbFzhl1bhR4W1meBoXPdLU1hzlzonVntMx_6Perde9sChtLkA=w526-h296" alt="Rentals screen — empty state, no city info" onerror="this.style.display='none'">
+          <div class="ss-inline-cap">Play Store screenshot · Rentals screen — No supported cities named, no ETA for expansion, no waitlist CTA for unsupported areas</div>
+        </div>
+
+        <div class="fb-grid">
+          <div class="fb-section">
+            <div class="fb-sec-label obs">Observed</div>
+            <div class="fb-sec-text">
+              The website opens with a full-screen modal: "Delivery in minutes / Detect my location." For users outside the delivery radius (every city except the unnamed "select cities"), geolocation detection returns no result — no error state, no fallback message, no list of where delivery is available, and no alternative action. The user is left on the modal with no path forward except closing it. The Play Store listing and website both describe "10-minute delivery (select cities)" without naming a single city. Competitor RentoMojo names all 9 cities on its homepage. Furlenco has a city selector with expansion notifications.
+            </div>
+          </div>
+          <div class="fb-section">
+            <div class="fb-sec-label prob">Problem</div>
+            <div class="fb-sec-text">
+              India's top 8 metros (Delhi, Mumbai, Hyderabad, Pune, Chennai, Kolkata, Ahmedabad, Jaipur) represent ~180M urban consumers. If Subspace's rentals are only in Bengaluru, that's 170M+ users hitting a silent failure on their first visit. The business cost is twofold: <strong>(a) immediate conversion loss</strong> — user leaves having seen nothing of value; <strong>(b) zero demand data</strong> — Subspace cannot prioritise the next rental city because it has no city-wise waitlist. Every unsupported-city user who bounces is a wasted CAC and a missing data point. The 10-minute delivery model — Subspace's most physically defensible moat — is invisible to 95% of its potential market.
+            </div>
+          </div>
+          <div class="fb-section">
+            <div class="fb-sec-label ship">Ship Instead</div>
+            <div class="fb-sec-text">
+              <strong>Three changes, prioritised by effort:</strong><br><br>
+              <em>Day 1 — Fix the failure state:</em> When geolocation fails or returns an unsupported city, show: "Rentals aren't in [City] yet — but subscriptions and gift cards are. [Explore deals →]" This retains the user in the funnel for Subspace's other verticals.<br><br>
+              <em>Week 1 — Add city list + waitlist:</em> Name the supported city/cities on the Rentals tab. For unsupported cities: "Join waitlist → get ₹200 credit on launch day." This converts dead-end UX into a growth loop and gives the PM team demand-side signals to prioritise next launch city.<br><br>
+              <em>Q3 — Partner for expansion:</em> Rentals in 10 minutes requires hyperlocal inventory and logistics. Rather than building owned dark stores in every city, partner with Dunzo/Swiggy Instamart (already have micro-fulfilment in 15+ cities) as a gadget rental distribution layer.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK 4 -->
+<div class="section" id="fb4">
+  <div class="sec-header">
+    <div class="sec-tag">04 · Competitor Analysis + GTM</div>
+    <div class="sec-title">Subspace describes itself with 5 different value propositions across 5 surfaces — while CRED and Splitwise own single, sticky sentences</div>
+  </div>
+
+  <div class="fb-list">
+    <div class="fb" id="fb4-card">
+      <div class="fb-accent-bar p1"></div>
+      <div class="fb-head">
+        <div class="fb-num">04</div>
+        <div class="fb-head-text">
+          <div class="fb-pillar">Competitor Analysis · Brand Architecture</div>
+          <div class="fb-title">The app has four verticals competing for hero status — and the leadership change in March 2026 was a missed inflection to reset the narrative</div>
+          <div class="fb-hook">Brand diffusion is a distribution problem disguised as a marketing problem. When users can't answer "what is Subspace?" in one sentence, the referral loop breaks.</div>
+        </div>
+        <div class="fb-badges"><span class="badge p1">P1 · High</span></div>
+      </div>
+      <div class="fb-body">
+
+        <!-- Documented inconsistency table -->
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Surface</th>
+                <th>Primary Value Proposition Used</th>
+                <th>Lead Verb</th>
+                <th>Verdict</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="hl">Website headline</td>
+                <td>"Your subscription management platform"</td>
+                <td>Manage</td>
+                <td class="neu">Utility framing</td>
+              </tr>
+              <tr>
+                <td class="hl">Play Store title</td>
+                <td>"SubSpace-Rent Subscribe Share"</td>
+                <td>Rent</td>
+                <td class="neu">Feature listing</td>
+              </tr>
+              <tr>
+                <td class="hl">Play Store desc. lead</td>
+                <td>"one-stop destination to save money, rent instantly, enjoy discounted subscriptions and gift cards"</td>
+                <td>Save</td>
+                <td class="loss">Too broad</td>
+              </tr>
+              <tr>
+                <td class="hl">About Us page</td>
+                <td>"simplifies splitting expenses with friends, tracking bills, and saving money"</td>
+                <td>Split / Track</td>
+                <td class="loss">Sounds like Splitwise</td>
+              </tr>
+              <tr>
+                <td class="hl">CEO announcement (Mar 2026)</td>
+                <td>"subscriptions, sharing, rentals, and efficient financial services"</td>
+                <td>—</td>
+                <td class="loss">Strategy doc, not brand</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ss-inline">
+          <img src="https://play-lh.googleusercontent.com/qiDtjH0pfuoLx_eBzqWg0XjByswBSL95wptveQ-AMnyQXRqOy61Tq6BityyIXGHhoKM=w526-h296" alt="App home — 4 verticals competing for attention" onerror="this.style.display='none'">
+          <div class="ss-inline-cap">Play Store · Home screen — Subscriptions, Gift Cards, Rentals, Groups all compete for primary attention with equal visual weight. No clear hierarchy.</div>
+        </div>
+
+        <div class="fb-grid">
+          <div class="fb-section">
+            <div class="fb-sec-label obs">Observed</div>
+            <div class="fb-sec-text">
+              Across website, Play Store title, Play Store description, About Us page, and the March 2026 CEO appointment press release — Subspace uses a different lead verb and different primary value prop on every surface. The home screen (screenshot above) gives equal visual weight to subscriptions, gift cards, rentals, and group sharing, with no clear primary action. The March 2026 CEO transition — a natural moment for a brand reset that would earn press coverage at zero cost — passed without a positioning update. CRED's brand is "rewards for bills." Splitwise is "split expenses." Zepto is "10-minute delivery." Subspace has no equivalent sentence.
+            </div>
+          </div>
+          <div class="fb-section">
+            <div class="fb-sec-label prob">Problem</div>
+            <div class="fb-sec-text">
+              Brand diffusion has a measurable referral cost. If a satisfied Subspace user cannot explain the app in one sentence, they won't refer it. At ₹36.5Cr ARR bootstrapped, Subspace's primary growth lever is organic referral — not paid acquisition. Diffuse positioning breaks the referral loop. It also causes a Play Store SEO problem: with 5 different search intents across surfaces (subscription management, expense splitting, rental, gift cards, group sharing), Subspace ranks weakly for all of them instead of dominantly for one. Comparison: CRED ranks #1 for "credit card bill rewards India" because every surface reinforces that single message.
+            </div>
+          </div>
+          <div class="fb-section">
+            <div class="fb-sec-label ship">Ship Instead</div>
+            <div class="fb-sec-text">
+              <strong>One sentence, one hierarchy, one press moment:</strong><br><br>
+              Proposed positioning: <em>"India's savings super-app — get any subscription or rental at the best price, every time."</em> The lead verb is "save." Every vertical (subscriptions, groups, gift cards, rentals) is a savings mechanism — the hierarchy is clear.<br><br>
+              <em>Home screen hierarchy:</em> Subscriptions (highest volume, most understood) → Sharing (network effect) → Gift Cards (upsell) → Rentals (wow differentiator). Not equal visual weight — graduated emphasis.<br><br>
+              <em>Use the CEO appointment as the press peg:</em> A "New leadership, renewed mission" press push costs nothing and earns coverage in YourStory, Inc42, and ET Prime. The positioning reset rides the news cycle — a ₹0 PR spend for a brand relaunch.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK 5 -->
+<div class="section" id="fb5">
+  <div class="sec-header">
+    <div class="sec-tag">05 · Potential Collaborations</div>
+    <div class="sec-title">Subspace's admin network is an untapped creator economy — the highest-ROI distribution channel the company already owns and isn't building</div>
+  </div>
+
+  <div class="insight">
+    <div class="insight-icon">⚡</div>
+    <div class="insight-text"><strong>The math:</strong> If an admin manages a 20-member Netflix group at ₹200/seat/month = ₹4,000 GMV/month. Subspace takes ~10% = ₹400/month per active admin. If there are 5,000 active admins, that's ₹2Cr/month — ~₹24Cr ARR — from admin transactions alone. Each admin who grows from 20 to 50 members <strong>doubles Subspace's revenue from that admin</strong> at zero incremental CAC. This is the most capital-efficient growth lever the company has, and it has zero tooling built around it.</div>
+  </div>
+
+  <div class="fb-list">
+    <div class="fb" id="fb5-card">
+      <div class="fb-accent-bar p2"></div>
+      <div class="fb-head">
+        <div class="fb-num">05</div>
+        <div class="fb-head-text">
+          <div class="fb-pillar">Potential Collaborations · Product-Led Growth</div>
+          <div class="fb-title">Admins have a financial incentive to recruit members but zero tools to do it — no profile page, no shareable link, no earnings dashboard, no referral mechanic</div>
+          <div class="fb-hook">Subspace already has a creator economy. It's just invisible. Every admin is a micro-entrepreneur who will self-distribute if you give them the tools — and every member they recruit is pure Subspace revenue.</div>
+        </div>
+        <div class="fb-badges"><span class="badge p2">P2 · Strategic</span></div>
+      </div>
+      <div class="fb-body">
+
+        <div class="ss-inline">
+          <img src="https://play-lh.googleusercontent.com/FcDYLC7YKYoWoO9sUCDKVSYkpNt02W0N2wLYrGDZbaTJM-t2kzFzh7MXxTAgLNRvM81S=w526-h296" alt="Groups screen — earn as admin, no growth tools" onerror="this.style.display='none'">
+          <div class="ss-inline-cap">Play Store screenshot · Groups/Earn screen — "Earn money as an admin" is advertised but there is no earnings dashboard, no growth target, no shareable profile link, and no referral mechanic for admins to grow their groups</div>
+        </div>
+
+        <div class="fb-grid">
+          <div class="fb-section">
+            <div class="fb-sec-label obs">Observed</div>
+            <div class="fb-sec-text">
+              The Play Store listing states: "👑 Earn money as an admin when members pay their share." The public-groups page at subspace.money/public-groups lists available groups — but the page has no SEO meta tags, no social sharing button, no embed widget, no individual group permalink that an admin can share on WhatsApp or Instagram. In the app, there is no admin earnings dashboard, no "Grow your group" goal, no member recruitment tool, and no way to see historical earnings vs. targets. The admin is told they can earn, but given no information about how much, no tools to scale, and no external-sharing mechanism.
+            </div>
+          </div>
+          <div class="fb-section">
+            <div class="fb-sec-label prob">Problem</div>
+            <div class="fb-sec-text">
+              The admin-earn mechanic is Subspace's lowest-CAC acquisition channel — admins recruit members on Subspace's behalf because <strong>their earnings depend on it</strong>. But an admin who wants to grow from 10 to 30 members has no tools: they can't share a group link on WhatsApp (no permalink), can't show proof of legitimacy to strangers (no profile), and can't track progress toward a financial goal (no dashboard). This is the equivalent of launching a marketplace and not giving sellers a product listing URL. The referral-loop potential is enormous — bundling reduces churn by 34% (subscription industry data) and family plans increase retention by 52% — but Subspace isn't capturing it.
+            </div>
+          </div>
+          <div class="fb-section">
+            <div class="fb-sec-label ship">Ship Instead</div>
+            <div class="fb-sec-text">
+              <strong>Admin Pro Programme — 3 components, built in sequence:</strong><br><br>
+              <em>Sprint 1 — Shareable group link:</em> Give every group a unique URL (subspace.money/g/[group-id]) that works without app login. Show group name, subscription, price-per-seat, admin Trust Score, and a "Join for ₹X/month" CTA. This single change makes every admin a distribution channel on WhatsApp, Instagram, and LinkedIn.<br><br>
+              <em>Sprint 2 — Earnings dashboard:</em> Total earned, active member count, payout date, and a "Get to ₹5,000/month" milestone tracker. Gamified goals increase admin activity without any paid incentive.<br><br>
+              <em>Q3 — Partnership with Moj/ShareChat:</em> Feature top 50 admins as "Subspace Creators" — micro-influencers with a financial stake in promoting the platform. Cost: zero cash; revenue share already built into the model.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MATRIX -->
+<div class="section" id="matrix">
+  <div class="sec-header">
+    <div class="sec-tag">06 · Summary</div>
+    <div class="sec-title">Prioritisation across all five feedbacks</div>
+  </div>
+
+  <!-- Competitor table -->
+  <div style="margin-bottom:36px;">
+    <div style="font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">Competitor Benchmarking</div>
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Platform</th>
+            <th>Group Sharing</th>
+            <th>Trust / Escrow</th>
+            <th>Negotiate API</th>
+            <th>Rentals</th>
+            <th>Brand Clarity</th>
+            <th>Play Store</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="hl">Subspace.money</td>
+            <td class="win">✓ Public + Private</td>
+            <td class="loss">✗ Admin-dependent</td>
+            <td class="win">✓ Exists (hidden)</td>
+            <td class="win">✓ 10-min (1 city?)</td>
+            <td class="loss">✗ 5 different props</td>
+            <td class="neu">3.5★ / 3.2K reviews</td>
+          </tr>
+          <tr>
+            <td class="hl">CRED</td>
+            <td class="loss">✗ No</td>
+            <td class="win">✓ Strong</td>
+            <td class="loss">✗ No</td>
+            <td class="loss">✗ No</td>
+            <td class="win">✓ "Rewards for bills"</td>
+            <td class="win">4.6★ / 3M+ reviews</td>
+          </tr>
+          <tr>
+            <td class="hl">Splitwise</td>
+            <td class="win">✓ Expense split</td>
+            <td class="win">✓ No money at risk</td>
+            <td class="loss">✗ No</td>
+            <td class="loss">✗ No</td>
+            <td class="win">✓ "Split expenses"</td>
+            <td class="win">4.4★ / 1M+ reviews</td>
+          </tr>
+          <tr>
+            <td class="hl">RentoMojo</td>
+            <td class="loss">✗ No</td>
+            <td class="win">✓ Company-backed</td>
+            <td class="loss">✗ No</td>
+            <td class="win">✓ 9 named cities</td>
+            <td class="win">✓ "Rent furniture"</td>
+            <td class="neu">3.8★</td>
+          </tr>
+          <tr>
+            <td class="hl">myPaisaa</td>
+            <td class="win">✓ Group savings</td>
+            <td class="win">✓ Bank-backed</td>
+            <td class="loss">✗ No</td>
+            <td class="loss">✗ No</td>
+            <td class="win">✓ "Group savings"</td>
+            <td class="neu">3.9★</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Priority Matrix -->
+  <div class="matrix-grid">
+    <div class="mx-cell q1">
+      <h4>🔴 Ship Now — High Impact, Low Effort</h4>
+      <ul>
+        <li>#1 → Admin Trust Score (frontend display only)</li>
+        <li>#3 → Rentals failure state + city list</li>
+        <li>#4 → Unify tagline across all surfaces</li>
+        <li>#5 → Shareable group permalink URL</li>
+      </ul>
+    </div>
+    <div class="mx-cell q2">
+      <h4>🟡 Next Sprint — High Impact, Medium Effort</h4>
+      <ul>
+        <li>#1 → Escrow-backed Subspace Guarantee</li>
+        <li>#2 → Surface Negotiate savings in UI</li>
+        <li>#3 → Rentals waitlist + city expansion data</li>
+        <li>#5 → Admin earnings dashboard</li>
+      </ul>
+    </div>
+    <div class="mx-cell q3">
+      <h4>🟢 Next Quarter — High Impact, High Effort</h4>
+      <ul>
+        <li>#1 → Verified Admin Programme (KYC + premium)</li>
+        <li>#2 → Negotiate API B2B developer page + HR partnerships</li>
+        <li>#5 → Admin Creator Programme (Moj/ShareChat)</li>
+      </ul>
+    </div>
+    <div class="mx-cell q4">
+      <h4>⬜ Deprioritise — Until Trust Is Fixed</h4>
+      <ul>
+        <li>New feature launches (compete against trust deficit)</li>
+        <li>International expansion (fix India ICP first)</li>
+        <li>Any paid marketing (referral loop is broken)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Closing note -->
+  <div style="margin-top:36px; padding:24px; border:1px solid var(--indigo-dim); background:var(--indigo-glow);">
+    <div style="font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--indigo);margin-bottom:10px;">Why Subspace over Vocallabs</div>
+    <div style="font-family:'Instrument Serif',serif;font-style:italic;font-size:16px;color:var(--text-muted);line-height:1.7;max-width:680px;">
+      Subspace is at the more interesting inflection: it has already proven PMF at ₹36.5Cr ARR bootstrapped — arguably harder than raising a round. The problems aren't about building new things. They're about closing the gap between what the product <em>is</em> (a sophisticated savings marketplace with a negotiation moat) and what it <em>appears to be</em> (a grey-market credential-sharing app with trust issues). That gap is where a product person does their best work.
+    </div>
+  </div>
+</div>
+
+</div><!-- /page -->
+
+<div class="footer">
+  <div class="footer-left">Atinshay · Product Intern Application · Subspace.money</div>
+  <div class="footer-right">May 31, 2026 · Submitted via Hiringg.ai</div>
+</div>
+
+</body>
+</html>
